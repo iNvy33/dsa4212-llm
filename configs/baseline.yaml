@@ -1,0 +1,52 @@
+# Baseline configuration. Every experiment is a small set of overrides of this
+# file (configs/stages/*.yaml). Keys must match the fields of src/config.py.
+
+# --- Run ---
+run_name: baseline       # folder name under runs/<stage>/
+stage: dev               # stage name, e.g. E0, E1
+seed: 0                  # Python, NumPy and torch seed; also sets the train data order
+
+# --- Data ---
+data_dir: data
+tokenizer: bpe4096       # "bpe4096" (own byte-level BPE) or "char" (UTF-8 bytes + EOT)
+context_length: 1024     # tokens per sequence; p99.9 train story length (799) rounded up
+                         # to a power of 2. Char runs use 4128 (= 1024 x 4.03 bytes/token)
+
+# --- Model (pre-norm GPT, RMSNorm, sinusoidal positions, tied embeddings, no biases) ---
+n_layers: 4
+d_model: 384             # width; multiple of 32 so head size is a multiple of 8
+n_heads: 4               # fixed for all runs
+ffn_size: 768            # FFN hidden size, set explicitly (E2 solves it for equal params)
+
+# --- Batch ---
+batch_sequences: 32      # sequences per optimiser step: 32 x 1024 = 32,768 BPE tokens;
+                         # kept at 32 for char so each step covers the same bytes
+micro_batch_sequences: 16  # sequences per forward/backward; gradient accumulation fills the rest
+
+# --- Optimiser ---
+optimizer: adamw         # adamw | sgd (Nesterov momentum) | muon (2D hidden weights; AdamW for the rest)
+lr: 3.0e-3               # placeholder peak LR; replaced by the range test per configuration
+beta1: 0.9               # AdamW
+beta2: 0.95              # AdamW
+weight_decay: 0.1        # AdamW, 2D hidden weight matrices only (not embeddings or norms)
+grad_clip: 1.0           # global gradient-norm clip
+momentum: 0.9            # SGD
+
+# --- Learning-rate schedule (driven by progress = elapsed / budget_seconds) ---
+schedule: cosine         # cosine | wsd (warmup-stable-decay)
+warmup_frac: 0.02        # linear warmup over the first 2% of the budget
+final_lr_frac: 0.1       # schedule ends at 10% of peak LR
+wsd_decay_frac: 0.2      # wsd only: linear decay over the last 20% of the budget
+
+# --- Budget and precision ---
+budget_seconds: 1800     # training time (forward, backward, optimiser step, data loading)
+bf16: true               # bf16 autocast
+compile: true            # torch.compile (works with triton-windows); all runs or none
+
+# --- Validation and samples ---
+val_interval_seconds: 150  # validate every 150 s of training time (timer paused)
+val_slice_bytes: 1000000   # fixed ~1 MB slice of validation text for periodic checks
+sample_temperature: 0.8
+sample_top_k: 50
+sample_max_tokens: 200
+sample_seed: 0
