@@ -34,15 +34,13 @@ def main():
             m, a = flops_per_token(cfg)
             tokens = log["tokens_seen"]
             total = (m + a) * tokens
-            rows.append((f"{stage}/{cfg['run_name']}", cfg, tokens, m, a, total,
-                         total / log["train_seconds"], log["final_test_bpb"]))
-    print(f"{'run':18s} {'config':28s} {'tokens':>8s} {'MFLOP/tok':>9s} {'attn %':>6s} "
-          f"{'total FLOPs':>11s} {'TFLOP/s':>7s} {'test bpb':>8s}")
-    for name, cfg, tokens, m, a, total, rate, bpb in rows:
-        desc = (f"{cfg['n_layers']}x{cfg['d_model']}/{cfg['ffn_size']} {cfg['tokenizer']}"
-                f"{' ' + cfg['schedule'] if cfg['schedule'] != 'cosine' else ''}")
-        print(f"{name:18s} {desc:28s} {tokens / 1e6:7.0f}M {(m + a) / 1e6:9.1f} {100 * a / (m + a):5.0f}% "
-              f"{total:11.2e} {rate / 1e12:7.1f} {bpb:8.4f}")
+            rows.append((f"{stage}/{cfg['run_name']}", cfg, total))
+    print(f"{'config':58s} {'total training FLOPs':>20s}")
+    for name, cfg, total in rows:
+        desc = (f"{name}: {cfg['n_layers']}x{cfg['d_model']}/{cfg['ffn_size']} {cfg['tokenizer']}"
+                f"{', seed ' + str(cfg['seed']) if cfg['seed'] else ''}"
+                f"{', ' + cfg['schedule'] + ' + ' + cfg['decay_data'] + ' decay' if cfg['schedule'] != 'cosine' else ''}")
+        print(f"{desc:58s} {total:20.2e}")
 
 
 if __name__ == "__main__":
