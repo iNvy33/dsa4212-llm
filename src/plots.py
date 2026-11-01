@@ -1,4 +1,5 @@
 """Loss-over-time plots for one run (curves.png) and for several runs overlaid."""
+import math
 from pathlib import Path
 
 import matplotlib
@@ -33,10 +34,17 @@ def _zoom(ax, t: list[float], y: list[float], t_end: float, frac: float = 0.1):
     return False
 
 
-def _curves(log: dict):
+def _train_bpb_scale(log: dict) -> float:
+    """Factor converting train loss in nats/token to approximate bits/byte for this run."""
+    bytes_per_token = log["bytes_seen_estimate"] / log["tokens_seen"]
+    return 1.0 / (math.log(2) * bytes_per_token)
+
+
+def _curves(log: dict, train_in_bpb: bool = False):
     train = log.get("train_curve", [])
     t_min = [p[0] / 60 for p in train]
-    loss = [p[1] for p in train]
+    scale = _train_bpb_scale(log) if train_in_bpb else 1.0
+    loss = [p[1] * scale for p in train]
     lr = [p[2] if len(p) > 2 else None for p in train]
     val = log.get("val_curve", [])
     return t_min, loss, lr, [p[0] / 60 for p in val], [p[1] for p in val]
@@ -97,7 +105,7 @@ def plot_overlay(logs: list[dict], labels: list[str], path: Path, title: str):
     all_t, all_loss, all_vt, all_v = [], [], [], []
     ends = []  # (x, y, text) of each validation curve's last point
     for i, (log, label) in enumerate(zip(logs, labels)):
-        t, loss, _, vt, vbpb = _curves(log)
+        t, loss, _, vt, vbpb = _curves(log, train_in_bpb=True)  # comparable across tokenizers
         all_t += t; all_loss += loss; all_vt += vt; all_v += vbpb
         color = SERIES[i]
         axes[0].plot(vt, vbpb, color=color, lw=2, marker="o", ms=6, label=label,
@@ -106,7 +114,7 @@ def plot_overlay(logs: list[dict], labels: list[str], path: Path, title: str):
         if vt:
             ends.append((vt[-1], vbpb[-1], f"{label} {vbpb[-1]:.3f}"))
     axes[0].set_ylabel("val bpb (1 MB slice)", fontsize=9)
-    axes[1].set_ylabel("train loss (nats/token, 10 s mean)", fontsize=9)
+    axes[1].set_ylabel("train loss (approx. bits/byte, 10 s mean)", fontsize=9)
     t_end = max(all_t + all_vt, default=1)
     zoomed = _zoom(axes[0], all_vt, all_v, t_end)
     _zoom(axes[1], all_t, all_loss, t_end)
