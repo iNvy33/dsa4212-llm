@@ -95,6 +95,7 @@ def plot_overlay(logs: list[dict], labels: list[str], path: Path, title: str):
     fig, axes = plt.subplots(2, 1, figsize=(7.5, 6.5), sharex=True)
     fig.patch.set_facecolor(SURFACE)
     all_t, all_loss, all_vt, all_v = [], [], [], []
+    ends = []  # (x, y, text) of each validation curve's last point
     for i, (log, label) in enumerate(zip(logs, labels)):
         t, loss, _, vt, vbpb = _curves(log)
         all_t += t; all_loss += loss; all_vt += vt; all_v += vbpb
@@ -102,9 +103,8 @@ def plot_overlay(logs: list[dict], labels: list[str], path: Path, title: str):
         axes[0].plot(vt, vbpb, color=color, lw=2, marker="o", ms=6, label=label,
                      markeredgecolor=SURFACE, markeredgewidth=1)
         axes[1].plot(t, loss, color=color, lw=2, label=label)
-        if len(logs) <= 4 and vt:  # direct labels at line ends
-            axes[0].annotate(f"{label} {vbpb[-1]:.3f}", (vt[-1], vbpb[-1]), xytext=(6, 0),
-                             textcoords="offset points", va="center", fontsize=8, color=INK)
+        if vt:
+            ends.append((vt[-1], vbpb[-1], f"{label} {vbpb[-1]:.3f}"))
     axes[0].set_ylabel("val bpb (1 MB slice)", fontsize=9)
     axes[1].set_ylabel("train loss (nats/token, 10 s mean)", fontsize=9)
     t_end = max(all_t + all_vt, default=1)
@@ -116,6 +116,17 @@ def plot_overlay(logs: list[dict], labels: list[str], path: Path, title: str):
         _style(ax)
     axes[0].legend(fontsize=8, frameon=False, loc="upper right")
     axes[0].set_xlim(0, t_end * 1.15)
+    if len(ends) <= 4:  # direct labels at line ends, spread apart so they never overlap
+        lo, hi = axes[0].get_ylim()
+        gap = 0.045 * (hi - lo)
+        ends.sort(key=lambda e: e[1])
+        placed = []
+        for x, y, text in ends:
+            placed.append(max(y, placed[-1] + gap) if placed else y)
+        shift = max(0.0, placed[-1] - (hi - gap)) if placed else 0.0
+        for (x, y, text), ly in zip(ends, placed):
+            axes[0].annotate(text, (x, y), xytext=(x + 0.012 * t_end * 1.15, ly - shift),
+                             textcoords="data", va="center", fontsize=8, color=INK)
     fig.suptitle(title, fontsize=11, color=INK, x=0.02, ha="left")
     fig.tight_layout()
     fig.savefig(path, dpi=130, facecolor=SURFACE)
