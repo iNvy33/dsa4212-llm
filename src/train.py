@@ -24,7 +24,7 @@ import torch
 
 from src.config import Config, load_config, parse_overrides
 from src.data_prep import SOURCES
-from src.evaluate import evaluate_bpb, load_eval_text, make_samples
+from src.evaluate import evaluate_bpb, evaluate_source_sets, load_eval_text, make_samples
 from src.model import GPT
 from src.optim import build_optimizer, lr_multiplier
 from src.plots import plot_run
@@ -267,6 +267,8 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
     val_curve.append([train_seconds, evaluate_bpb(model, val_slice, val_slice_bytes,
                                                   cfg.context_length, EVAL_BATCH, device, cfg.bf16)])
     final_val = evaluate_bpb(model, val_tokens, val_bytes, cfg.context_length, EVAL_BATCH, device, cfg.bf16)
+    val_source_sets = evaluate_source_sets(model, Path(cfg.data_dir), cfg.tokenizer, tok.eot_id,
+                                           cfg.context_length, EVAL_BATCH, device, cfg.bf16)
     final_test = None
     if final:
         test_tokens, test_bytes = load_eval_text(Path(cfg.data_dir), cfg.tokenizer, "test")
@@ -293,13 +295,16 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
         "val_curve": val_curve,
         "train_curve": train_curve,
         "final_val_bpb": final_val,
+        "val_source_sets": val_source_sets,
         "final_test_bpb": final_test,
         "samples": samples,
     })
     (run_dir / "log.json").write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
     plot_run(log, run_dir / "curves.png")
     print(f"Done: {step} steps, {tokens_seen:,} tokens ({epochs:.3f} epochs) in "
-          f"{train_seconds:.1f}s; final val bpb {final_val:.4f}"
+          f"{train_seconds:.1f}s; final val bpb {final_val:.4f} "
+          f"(GPT-4-only set {val_source_sets['gpt4_only']['bpb']:.4f}, "
+          f"matched mixed set {val_source_sets['mixed']['bpb']:.4f})"
           + (f", test bpb {final_test:.4f}" if final else "") + f"\nLog: {run_dir / 'log.json'}")
     return log
 

@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 from src.config import load_config
-from src.evaluate import evaluate_bpb, sum_nats
+from src.evaluate import evaluate_bpb, gather_stories, select_source_sets, sum_nats
 from src.model import GPT
 from src.optim import lr_multiplier, param_groups
 from src.train import Timer, TrainStream
@@ -57,6 +57,26 @@ def test_schedule_values(schedule, expected):
     for progress, value in expected.items():
         assert lr_multiplier(progress, cfg) == pytest.approx(value), progress
     assert lr_multiplier(1.5, cfg) == pytest.approx(0.1)  # last step may overshoot the budget
+
+
+def test_source_sets_gpt4_only_and_matched_mixed():
+    rng = np.random.default_rng(0)
+    sources = (rng.random(2000) < 0.55).astype(np.uint8)          # 1 = GPT-4
+    story_bytes = rng.integers(300, 1500, size=2000) + 200 * sources  # GPT-4 stories longer
+    sets = select_source_sets(sources, story_bytes, seed=1234)
+    a, b = sets["gpt4_only"], sets["mixed"]
+    assert (sources[a] == 1).all() and len(a) == sources.sum()
+    target = story_bytes[a].sum()
+    assert abs(story_bytes[b].sum() - target) <= 2 * story_bytes.max()  # same size, within a story per source
+    natural = story_bytes[sources == 1].sum() / story_bytes.sum()
+    assert story_bytes[b][sources[b] == 1].sum() / story_bytes[b].sum() == pytest.approx(natural, abs=0.01)
+    assert np.array_equal(select_source_sets(sources, story_bytes, seed=1234)["mixed"], b)
+
+
+def test_gather_stories_layout():
+    tokens = np.array([0, 1, 2, 0, 3, 4, 5, 0, 6, 0], dtype=np.uint16)
+    offsets = np.array([0, 3, 7, 9])
+    assert gather_stories(tokens, offsets, np.array([2, 0]), eot_id=0).tolist() == [0, 6, 0, 1, 2, 0]
 
 
 def test_timer_excludes_paused_time():

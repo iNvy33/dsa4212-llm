@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from src.data_prep import SOURCES
+
 PROMPTS = [
     "Once upon a time",
     "One day, a little girl named Lily",
@@ -43,6 +45,55 @@ def load_eval_text(data_dir: Path, tokenizer: str, split: str,
             if n_bytes >= max_bytes:
                 break
     return np.asarray(tokens[:offsets[n_stories] + 1]), n_bytes
+
+
+def select_source_sets(sources: np.ndarray, story_bytes: np.ndarray, seed: int = 1234) -> dict:
+    """Story ids for two equal-size evaluation sets (E5).
+
+    gpt4_only: every GPT-4 story.
+    mixed:     a seeded random sample of all stories with the same UTF-8 bytes as
+               gpt4_only, stratified so each source keeps its natural byte share.
+               Its GPT-4 stories may also be in gpt4_only.
+    """
+    gpt4 = SOURCES.index("GPT-4")
+    a = np.nonzero(sources == gpt4)[0]
+    target = story_bytes[a].sum()
+    rng = np.random.default_rng(seed)
+    parts = []
+    for s in range(len(SOURCES)):
+        ids = np.nonzero(sources == s)[0]
+        share = story_bytes[ids].sum() / story_bytes.sum()
+        ids = rng.permutation(ids)
+        k = int(np.searchsorted(np.cumsum(story_bytes[ids]), share * target)) + 1
+        parts.append(ids[:min(k, len(ids))])
+    return {"gpt4_only": a, "mixed": np.sort(np.concatenate(parts))}
+
+
+def gather_stories(tokens: np.ndarray, offsets: np.ndarray, ids: np.ndarray, eot_id: int) -> np.ndarray:
+    """Token layout EOT s_a EOT s_b ... EOT for the chosen stories, in the given order."""
+    return np.concatenate([np.array([eot_id], dtype=np.uint16)]
+                          + [np.asarray(tokens[offsets[i] + 1:offsets[i + 1] + 1]) for i in ids])
+
+
+def load_source_sets(data_dir: Path, tokenizer: str, eot_id: int, split: str = "val") -> dict:
+    """{name: (tokens, utf8 bytes, story count)} for the sets from select_source_sets."""
+    tok_dir = Path(data_dir) / "tokens" / tokenizer
+    tokens = np.memmap(tok_dir / f"{split}.bin", dtype=np.uint16, mode="r")
+    offsets = np.load(tok_dir / f"{split}.offsets.npy")
+    sources = np.load(tok_dir / f"{split}.sources.npy")
+    with (Path(data_dir) / "stories" / f"{split}.jsonl").open(encoding="utf-8") as f:
+        story_bytes = np.array([len(json.loads(line)["story"].encode("utf-8")) for line in f])
+    return {name: (gather_stories(tokens, offsets, ids, eot_id), int(story_bytes[ids].sum()), len(ids))
+            for name, ids in select_source_sets(sources, story_bytes).items()}
+
+
+def evaluate_source_sets(model, data_dir: Path, tokenizer: str, eot_id: int, context_length: int,
+                         batch_size: int, device: str, bf16: bool = True) -> dict:
+    out = {}
+    for name, (tokens, n_bytes, n_stories) in load_source_sets(data_dir, tokenizer, eot_id).items():
+        out[name] = {"stories": n_stories, "utf8_bytes": n_bytes,
+                     "bpb": evaluate_bpb(model, tokens, n_bytes, context_length, batch_size, device, bf16)}
+    return out
 
 
 @torch.no_grad()
