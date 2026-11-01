@@ -124,44 +124,42 @@ def plot_interaction(lines: dict[str, list[dict]], path: Path, title: str, metri
     plt.close(fig)
 
 
+def label_ends(ax, ends: list[tuple], t_end: float):
+    """Direct labels (x, y, text) at line ends, spread apart vertically so they never overlap."""
+    lo, hi = ax.get_ylim()
+    gap = 0.045 * (hi - lo)
+    ends = sorted(ends, key=lambda e: e[1])
+    placed = []
+    for x, y, text in ends:
+        placed.append(max(y, placed[-1] + gap) if placed else y)
+    shift = max(0.0, placed[-1] - (hi - gap)) if placed else 0.0
+    for (x, y, text), ly in zip(ends, placed):
+        ax.annotate(text, (x, y), xytext=(x + 0.012 * t_end * 1.15, ly - shift),
+                    textcoords="data", va="center", fontsize=8, color=INK)
+
+
 def plot_overlay(logs: list[dict], labels: list[str], path: Path, title: str):
-    """Validation bpb and training loss for several runs (one colour per run, fixed order)."""
+    """Training loss (approx. bits/byte, comparable across tokenizers) for several runs."""
     assert len(logs) <= len(SERIES), "more than 8 runs: split into small multiples"
-    fig, axes = plt.subplots(2, 1, figsize=(7.5, 6.5), sharex=True)
+    fig, ax = plt.subplots(figsize=(7.5, 4.2))
     fig.patch.set_facecolor(SURFACE)
-    all_t, all_loss, all_vt, all_v = [], [], [], []
-    ends = []  # (x, y, text) of each validation curve's last point
+    all_t, all_loss, ends = [], [], []
     for i, (log, label) in enumerate(zip(logs, labels)):
-        t, loss, _, vt, vbpb = _curves(log, train_in_bpb=True)  # comparable across tokenizers
-        all_t += t; all_loss += loss; all_vt += vt; all_v += vbpb
-        color = SERIES[i]
-        axes[0].plot(vt, vbpb, color=color, lw=2, marker="o", ms=6, label=label,
-                     markeredgecolor=SURFACE, markeredgewidth=1)
-        axes[1].plot(t, loss, color=color, lw=2, label=label)
-        if vt:
-            ends.append((vt[-1], vbpb[-1], f"{label} {vbpb[-1]:.3f}"))
-    axes[0].set_ylabel("val bpb (1 MB slice)", fontsize=9)
-    axes[1].set_ylabel("train loss (approx. bits/byte, 10 s mean)", fontsize=9)
-    t_end = max(all_t + all_vt, default=1)
-    zoomed = _zoom(axes[0], all_vt, all_v, t_end)
-    _zoom(axes[1], all_t, all_loss, t_end)
-    axes[1].set_xlabel("training time (minutes)"
-                       + ("  -  axes zoomed to the last 90% of training" if zoomed else ""))
-    for ax in axes:
-        _style(ax)
-    axes[0].legend(fontsize=8, frameon=False, loc="upper right")
-    axes[0].set_xlim(0, t_end * 1.15)
-    if len(ends) <= 4:  # direct labels at line ends, spread apart so they never overlap
-        lo, hi = axes[0].get_ylim()
-        gap = 0.045 * (hi - lo)
-        ends.sort(key=lambda e: e[1])
-        placed = []
-        for x, y, text in ends:
-            placed.append(max(y, placed[-1] + gap) if placed else y)
-        shift = max(0.0, placed[-1] - (hi - gap)) if placed else 0.0
-        for (x, y, text), ly in zip(ends, placed):
-            axes[0].annotate(text, (x, y), xytext=(x + 0.012 * t_end * 1.15, ly - shift),
-                             textcoords="data", va="center", fontsize=8, color=INK)
+        t, loss, _, _, _ = _curves(log, train_in_bpb=True)
+        all_t += t
+        all_loss += loss
+        ax.plot(t, loss, color=SERIES[i], lw=2, label=label)
+        if t:
+            ends.append((t[-1], loss[-1], f"{label} {loss[-1]:.3f}"))
+    ax.set_ylabel("train loss (approx. bits/byte, 10 s mean)", fontsize=9)
+    t_end = max(all_t, default=1)
+    zoomed = _zoom(ax, all_t, all_loss, t_end)
+    ax.set_xlabel("training time (minutes)" + ("  -  axis zoomed to the last 90% of training" if zoomed else ""))
+    _style(ax)
+    ax.legend(fontsize=8, frameon=False, loc="upper right")
+    ax.set_xlim(0, t_end * 1.15)
+    if len(ends) <= 4:
+        label_ends(ax, ends, t_end)
     fig.suptitle(title, fontsize=11, color=INK, x=0.02, ha="left")
     fig.tight_layout()
     fig.savefig(path, dpi=130, facecolor=SURFACE)

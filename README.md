@@ -64,6 +64,13 @@ Project Gutenberg children's books, 1.47 MB, detokenised, evaluation only):
 
 ### Figures
 
+![Final test bpb, all runs](runs/all_test_bpb.png)
+
+![Validation bpb over training, all runs](runs/all_val_overlay.png)
+
+Training loss per stage (in approximate bits per byte, comparable across tokenizers), and the
+E1–E5 analysis plots:
+
 | | |
 | --- | --- |
 | ![E1 depth](runs/E1/curves_overlay.png) | ![E2 width vs FFN](runs/E2/curves_overlay.png) |
