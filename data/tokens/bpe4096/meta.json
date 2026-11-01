@@ -1,0 +1,26 @@
+{
+  "tokenizer": "bpe4096",
+  "vocab_size": 4096,
+  "eot_id": 0,
+  "layout": "EOT s1 EOT s2 ... EOT sN EOT",
+  "splits": {
+    "train": {
+      "stories": 4947643,
+      "tokens": 954822597,
+      "utf8_bytes": 3829288571,
+      "bytes_per_token": 4.0313607163826335
+    },
+    "val": {
+      "stories": 10000,
+      "tokens": 1939568,
+      "utf8_bytes": 7773461,
+      "bytes_per_token": 4.028603826661629
+    },
+    "test": {
+      "stories": 10000,
+      "tokens": 1933857,
+      "utf8_bytes": 7750711,
+      "bytes_per_token": 4.028737597824369
+    }
+  }
+}

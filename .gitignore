@@ -1,7 +1,23 @@
-data/
-runs/
 .venv/
 .claude/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Data: re-created by src/data_prep.py and src/tokenizer.py. Keep only the trained
+# BPE tokenizer and the small split/token metadata files.
+/data/*
+!/data/tokenizers/
+!/data/stories/
+/data/stories/*
+!/data/stories/meta.json
+!/data/tokens/
+/data/tokens/*/*
+!/data/tokens/*/meta.json
+
+# Runs: keep logs, figures and range-test data; drop checkpoints, scratch runs
+# and console dumps.
+*.pt
+/runs/dev/
+/runs/phase0/
+/runs/*_stdout.txt

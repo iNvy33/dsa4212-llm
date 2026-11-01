@@ -1,0 +1,13 @@
+# Python 3.14.2, native Windows 11, NVIDIA driver 610.88 (RTX 3060 Ti 8 GB).
+# Install PyTorch from the CUDA 13.2 wheel index first:
+#   pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cu132
+# then: pip install -r requirements.txt
+torch==2.15.0
+triton-windows==3.9.0.post30   # torch.compile on Windows
+numpy==2.5.4
+PyYAML==6.0.3
+tokenizers==0.23.3
+huggingface_hub==2.4.0
+pyarrow==26.0.0                 # reads the Children's Book Test parquet files
+matplotlib==3.11.2
+pytest==9.2.0
