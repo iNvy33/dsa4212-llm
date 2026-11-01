@@ -25,7 +25,8 @@ micro_batch_sequences: 16  # sequences per forward/backward; gradient accumulati
 
 # --- Optimiser ---
 optimizer: adamw         # adamw | sgd (Nesterov momentum) | muon (2D hidden weights; AdamW for the rest)
-lr: 3.0e-3               # placeholder peak LR; replaced by the range test per configuration
+lr: 1.8e-3               # peak LR = rise / 3 from the range test (rise 5.36e-3), 2 s.f.;
+                         # every configuration gets its own range test with the same rule
 beta1: 0.9               # AdamW
 beta2: 0.95              # AdamW
 weight_decay: 0.1        # AdamW, 2D hidden weight matrices only (not embeddings or norms)

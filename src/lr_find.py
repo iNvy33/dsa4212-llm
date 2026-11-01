@@ -8,8 +8,9 @@ Saves runs/<stage>/lr_find_<run_name>/lr_find.json (lr, loss, smoothed loss,
 suggestion) and lr_find.png. Uses training batches only (no validation or test).
 
 Suggestion: "rise" is where the smoothed loss first climbs clearly (2%) above
-its lowest value so far. Take a value 3-10x below it, near where the loss falls fastest: the
-steepest-descent LR, clamped into [rise / 10, rise / 3].
+its lowest value so far. The suggested LR is rise / 3, the top of PLAN.md's
+3-10x band, applied the same way to every configuration. The steepest-descent
+LR is reported for reference only.
 """
 import argparse
 import json
@@ -62,7 +63,7 @@ def suggest(lrs: np.ndarray, smoothed: np.ndarray, skip: int = 10, tol: float = 
     i_steep = int(np.argmin(slope[skip:i_min + 1])) + skip if i_min > skip else i_min
     steepest = float(lrs[i_steep])
     return {"rise_lr": rise, "steepest_lr": steepest,
-            "suggested_lr": float(min(max(steepest, rise / 10), rise / 3))}
+            "suggested_lr": rise / 3}
 
 
 def lr_find(cfg: Config, lr_min: float, lr_max: float, steps: int, out_root: Path) -> dict:

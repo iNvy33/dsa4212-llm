@@ -22,7 +22,7 @@ def test_suggest_on_synthetic_curve():
     s = suggest(lrs, loss)
     assert s["rise_lr"] == pytest.approx(1e-2, rel=0.15)
     assert s["steepest_lr"] == pytest.approx(1e-3, rel=0.15)
-    assert s["rise_lr"] / 10 <= s["suggested_lr"] <= s["rise_lr"] / 3
+    assert s["suggested_lr"] == pytest.approx(s["rise_lr"] / 3)
 
 
 def test_suggest_ignores_recovery_after_spike():
