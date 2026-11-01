@@ -97,6 +97,33 @@ def plot_run(log: dict, path: Path):
     plt.close(fig)
 
 
+def plot_interaction(lines: dict[str, list[dict]], path: Path, title: str, metric: str = "final_test_bpb"):
+    """Interaction plot: metric against n_layers, one line per factor level (e.g. BPE vs char)."""
+    fig, ax = plt.subplots(figsize=(6, 4.5))
+    fig.patch.set_facecolor(SURFACE)
+    for i, (level, logs) in enumerate(lines.items()):
+        pts = sorted((log["config"]["n_layers"], log[metric]) for log in logs)
+        xs, ys = zip(*pts)
+        ax.plot(xs, ys, color=SERIES[i], lw=2, marker="o", ms=8, markeredgecolor=SURFACE,
+                markeredgewidth=2, label=level)
+        for x, y in pts:
+            ax.annotate(f"{y:.4f}", (x, y), xytext=(0, 9), textcoords="offset points",
+                        ha="center", va="bottom", fontsize=8, color=INK)
+        ax.annotate(level, (xs[0], ys[0]), xytext=(-10, 0), textcoords="offset points",
+                    ha="right", va="center", fontsize=9, color=INK)
+    xs_all = sorted({log["config"]["n_layers"] for logs in lines.values() for log in logs})
+    ax.set_xticks(xs_all)
+    ax.set_xlim(xs_all[0] - 0.35 * (xs_all[-1] - xs_all[0]), xs_all[-1] + 0.3 * (xs_all[-1] - xs_all[0]))
+    ax.set_xlabel("layers")
+    ax.set_ylabel(metric.replace("final_", "").replace("_", " "), fontsize=9)
+    _style(ax)
+    ax.legend(fontsize=8, frameon=False, loc="best")
+    fig.suptitle(title, fontsize=11, color=INK, x=0.02, ha="left")
+    fig.tight_layout()
+    fig.savefig(path, dpi=130, facecolor=SURFACE)
+    plt.close(fig)
+
+
 def plot_overlay(logs: list[dict], labels: list[str], path: Path, title: str):
     """Validation bpb and training loss for several runs (one colour per run, fixed order)."""
     assert len(logs) <= len(SERIES), "more than 8 runs: split into small multiples"
