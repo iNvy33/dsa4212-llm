@@ -71,6 +71,8 @@ def test_source_sets_gpt4_only_and_matched_mixed():
     natural = story_bytes[sources == 1].sum() / story_bytes.sum()
     assert story_bytes[b][sources[b] == 1].sum() / story_bytes[b].sum() == pytest.approx(natural, abs=0.01)
     assert np.array_equal(select_source_sets(sources, story_bytes, seed=1234)["mixed"], b)
+    c = sets["gpt35_only"]
+    assert (sources[c] == 0).all() and len(c) + len(a) == len(sources)
 
 
 def test_gather_stories_layout():

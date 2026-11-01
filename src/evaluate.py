@@ -48,12 +48,13 @@ def load_eval_text(data_dir: Path, tokenizer: str, split: str,
 
 
 def select_source_sets(sources: np.ndarray, story_bytes: np.ndarray, seed: int = 1234) -> dict:
-    """Story ids for two equal-size evaluation sets (E5).
+    """Story ids for the per-source evaluation sets (E5).
 
-    gpt4_only: every GPT-4 story.
-    mixed:     a seeded random sample of all stories with the same UTF-8 bytes as
-               gpt4_only, stratified so each source keeps its natural byte share.
-               Its GPT-4 stories may also be in gpt4_only.
+    gpt4_only:  every GPT-4 story.
+    mixed:      a seeded random sample of all stories with the same UTF-8 bytes as
+                gpt4_only, stratified so each source keeps its natural byte share.
+                Its GPT-4 stories may also be in gpt4_only.
+    gpt35_only: every GPT-3.5 story (smaller than the other two; bpb is per byte).
     """
     gpt4 = SOURCES.index("GPT-4")
     a = np.nonzero(sources == gpt4)[0]
@@ -66,7 +67,8 @@ def select_source_sets(sources: np.ndarray, story_bytes: np.ndarray, seed: int =
         ids = rng.permutation(ids)
         k = int(np.searchsorted(np.cumsum(story_bytes[ids]), share * target)) + 1
         parts.append(ids[:min(k, len(ids))])
-    return {"gpt4_only": a, "mixed": np.sort(np.concatenate(parts))}
+    return {"gpt4_only": a, "mixed": np.sort(np.concatenate(parts)),
+            "gpt35_only": np.nonzero(sources == SOURCES.index("GPT-3.5"))[0]}
 
 
 def gather_stories(tokens: np.ndarray, offsets: np.ndarray, ids: np.ndarray, eot_id: int) -> np.ndarray:
