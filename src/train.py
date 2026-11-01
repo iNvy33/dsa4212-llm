@@ -26,6 +26,7 @@ from src.config import Config, load_config, parse_overrides
 from src.evaluate import evaluate_bpb, load_eval_text, make_samples
 from src.model import GPT
 from src.optim import build_optimizer, lr_multiplier
+from src.plots import plot_run
 from src.tokenizer import get_tokenizer
 
 EVAL_BATCH = 16  # sequences per evaluation forward pass
@@ -198,7 +199,9 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
     timer = Timer()
     val_curve, train_curve = [], []
     next_val = cfg.val_interval_seconds
-    next_print = 0.0
+    next_print = 10.0
+    interval_loss = torch.zeros((), device=device)  # summed step losses since the last log point
+    interval_steps = 0
     step = 0
     timer.start()
     elapsed = 0.0
@@ -217,13 +220,17 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
         opt.step()
         opt.zero_grad(set_to_none=True)
         step += 1
+        interval_loss += loss_sum / cfg.grad_accum_steps
+        interval_steps += 1
         elapsed = timer.elapsed()
 
-        if elapsed >= next_print:
-            train_loss = loss_sum.item() / cfg.grad_accum_steps
-            train_curve.append([elapsed, train_loss])
+        if elapsed >= next_print or elapsed >= cfg.budget_seconds:
+            train_loss = interval_loss.item() / interval_steps
+            train_curve.append([elapsed, train_loss, lr])
             print(f"  step {step:6d}  {elapsed:7.1f}s  loss {train_loss:.4f}  lr {lr:.2e}  "
                   f"grad norm {grad_norm.item():.3f}  {stream.tokens_seen / elapsed:,.0f} tok/s")
+            interval_loss.zero_()
+            interval_steps = 0
             next_print += 10.0
         if elapsed >= next_val and elapsed < cfg.budget_seconds:
             timer.pause()
@@ -250,6 +257,7 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
     torch.save(model.state_dict(), run_dir / "model.pt")
 
     log.update({
+        "train_curve_format": "[elapsed seconds, mean train loss (nats/token) over the interval, lr]",
         "steps": step,
         "train_seconds": train_seconds,
         "tokens_seen": stream.tokens_seen,
@@ -266,6 +274,7 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
         "samples": samples,
     })
     (run_dir / "log.json").write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
+    plot_run(log, run_dir / "curves.png")
     print(f"Done: {step} steps, {stream.tokens_seen:,} tokens ({stream.epochs:.3f} epochs) in "
           f"{train_seconds:.1f}s; final val bpb {final_val:.4f}"
           + (f", test bpb {final_test:.4f}" if final else "") + f"\nLog: {run_dir / 'log.json'}")
