@@ -40,6 +40,7 @@ class Config:
     warmup_frac: float = 0.02
     final_lr_frac: float = 0.1
     wsd_decay_frac: float = 0.2
+    decay_data: str = "mixed"
     # Budget and precision
     budget_seconds: float = 1800.0
     bf16: bool = True
@@ -59,6 +60,9 @@ class Config:
             "batch_sequences must be a multiple of micro_batch_sequences"
         assert self.optimizer in ("adamw", "sgd", "muon"), self.optimizer
         assert self.schedule in ("cosine", "wsd"), self.schedule
+        assert self.decay_data in ("mixed", "gpt4"), self.decay_data
+        assert self.decay_data == "mixed" or self.schedule == "wsd", \
+            "decay_data=gpt4 needs the wsd schedule (it defines the decay phase)"
 
     @property
     def head_size(self) -> int:

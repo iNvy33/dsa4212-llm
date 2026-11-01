@@ -98,6 +98,25 @@ def test_train_stream_order_depends_on_seed():
     assert np.array_equal(make_stream(3).order, make_stream(3).order)
 
 
+def test_train_stream_subset_reads_only_those_stories():
+    # stories [1,2] [3,4,5] [6] [7,8,9,10]; keep stories 1 and 3 only -> [3,4,5] and [7,8,9,10]
+    tokens = np.array([0, 1, 2, 0, 3, 4, 5, 0, 6, 0, 7, 8, 9, 10, 0], dtype=np.uint16)
+    offsets = np.array([0, 3, 7, 9, 14])
+    s = TrainStream(tokens, offsets, seed=0, seq_len=9, eot_id=0, story_ids=np.array([1, 3]))
+    assert s.total_tokens == 9                # 7 story tokens + 2 EOTs
+    batch = s.next_batch(1)                   # exactly one epoch of the subset
+    assert sorted(batch[0, 1:].tolist()) == [0, 0, 3, 4, 5, 7, 8, 9, 10]
+    assert s.epochs == pytest.approx(1.0)
+    more = s.next_batch(3)                    # later epochs stay inside the subset
+    assert set(more.ravel().tolist()) <= {0, 3, 4, 5, 7, 8, 9, 10}
+
+
+def test_gpt4_decay_requires_wsd():
+    with pytest.raises(AssertionError):
+        load_config(BASELINE, {"decay_data": "gpt4"})            # cosine schedule
+    assert load_config(BASELINE, {"decay_data": "gpt4", "schedule": "wsd"}).decay_data == "gpt4"
+
+
 def test_weight_decay_groups():
     model = GPT(load_config(BASELINE, {"n_layers": 2, "d_model": 64, "ffn_size": 128,
                                        "context_length": 32}), 100)

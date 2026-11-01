@@ -38,6 +38,8 @@ schedule: cosine         # cosine | wsd (warmup-stable-decay)
 warmup_frac: 0.02        # linear warmup over the first 2% of the budget
 final_lr_frac: 0.1       # schedule ends at 10% of peak LR
 wsd_decay_frac: 0.2      # wsd only: linear decay over the last 20% of the budget
+decay_data: mixed        # wsd only: "mixed" (all stories) or "gpt4" (GPT-4 stories only
+                         # during the decay phase; E5 staged data)
 
 # --- Budget and precision ---
 budget_seconds: 1800     # training time (forward, backward, optimiser step, data loading)

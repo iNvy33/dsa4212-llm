@@ -23,6 +23,7 @@ import numpy as np
 import torch
 
 from src.config import Config, load_config, parse_overrides
+from src.data_prep import SOURCES
 from src.evaluate import evaluate_bpb, load_eval_text, make_samples
 from src.model import GPT
 from src.optim import build_optimizer, lr_multiplier
@@ -66,15 +67,21 @@ class TrainStream:
     Stories (each followed by its EOT) are concatenated in a permutation drawn
     from (seed, epoch); after the last story a new permutation starts the next
     epoch. Consecutive sequences overlap by one token, so every token is a
-    target exactly once.
+    target exactly once. With story_ids, only that subset of stories is read
+    (e.g. GPT-4 stories for the staged-data decay phase).
     """
 
     def __init__(self, tokens: np.ndarray, offsets: np.ndarray, seed: int, seq_len: int,
-                 eot_id: int):
+                 eot_id: int, story_ids: np.ndarray | None = None):
         self.tokens, self.offsets = tokens, offsets
         self.seed, self.seq_len = seed, seq_len
-        self.n_stories = len(offsets) - 1
-        self.total_tokens = len(tokens) - 1  # every token except the first EOT is a target once
+        self.story_ids = story_ids
+        if story_ids is None:
+            self.n_stories = len(offsets) - 1
+            self.total_tokens = len(tokens) - 1  # every token except the first EOT is a target once
+        else:
+            self.n_stories = len(story_ids)
+            self.total_tokens = int((offsets[story_ids + 1] - offsets[story_ids]).sum())
         self.epoch = 0
         self.order = self._permutation(0)
         self.pos = 0
@@ -82,7 +89,8 @@ class TrainStream:
         self.tokens_seen = 0
 
     def _permutation(self, epoch: int) -> np.ndarray:
-        return np.random.default_rng([self.seed, epoch]).permutation(self.n_stories)
+        perm = np.random.default_rng([self.seed, epoch]).permutation(self.n_stories)
+        return perm if self.story_ids is None else self.story_ids[perm]
 
     def _next_story(self) -> np.ndarray:
         if self.pos == self.n_stories:
@@ -175,8 +183,15 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
     tok = get_tokenizer(cfg.tokenizer, Path(cfg.data_dir))
     tok_dir = Path(cfg.data_dir) / "tokens" / cfg.tokenizer
     train_tokens = np.memmap(tok_dir / "train.bin", dtype=np.uint16, mode="r")
-    stream = TrainStream(train_tokens, np.load(tok_dir / "train.offsets.npy"), cfg.seed,
-                         cfg.context_length, tok.eot_id)
+    train_offsets = np.load(tok_dir / "train.offsets.npy")
+    stream = TrainStream(train_tokens, train_offsets, cfg.seed, cfg.context_length, tok.eot_id)
+    # Staged data (E5): during the WSD decay phase, read GPT-4 stories only
+    decay_stream = None
+    if cfg.decay_data == "gpt4":
+        gpt4_ids = np.nonzero(np.load(tok_dir / "train.sources.npy") == SOURCES.index("GPT-4"))[0]
+        decay_stream = TrainStream(train_tokens, train_offsets, cfg.seed, cfg.context_length,
+                                   tok.eot_id, story_ids=gpt4_ids)
+    decay_start = 1.0 - cfg.wsd_decay_frac
     train_bytes = json.loads((tok_dir / "meta.json").read_text(encoding="utf-8"))["splits"]["train"]["utf8_bytes"]
     val_slice, val_slice_bytes = load_eval_text(Path(cfg.data_dir), cfg.tokenizer, "val", cfg.val_slice_bytes)
 
@@ -210,8 +225,10 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
         for group in opt.param_groups:
             group["lr"] = lr
         loss_sum = torch.zeros((), device=device)
+        in_decay = decay_stream is not None and elapsed / cfg.budget_seconds >= decay_start
+        source = decay_stream if in_decay else stream
         for _ in range(cfg.grad_accum_steps):
-            batch = to_device(stream.next_batch(cfg.micro_batch_sequences), device)
+            batch = to_device(source.next_batch(cfg.micro_batch_sequences), device)
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=cfg.bf16):
                 _, loss = step_model(batch[:, :-1], batch[:, 1:])
             (loss / cfg.grad_accum_steps).backward()
@@ -227,8 +244,10 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
         if elapsed >= next_print or elapsed >= cfg.budget_seconds:
             train_loss = interval_loss.item() / interval_steps
             train_curve.append([elapsed, train_loss, lr])
+            tokens_now = stream.tokens_seen + (decay_stream.tokens_seen if decay_stream else 0)
             print(f"  step {step:6d}  {elapsed:7.1f}s  loss {train_loss:.4f}  lr {lr:.2e}  "
-                  f"grad norm {grad_norm.item():.3f}  {stream.tokens_seen / elapsed:,.0f} tok/s")
+                  f"grad norm {grad_norm.item():.3f}  {tokens_now / elapsed:,.0f} tok/s"
+                  + ("  [GPT-4 only]" if in_decay else ""))
             interval_loss.zero_()
             interval_steps = 0
             next_print += 10.0
@@ -256,15 +275,19 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
     samples = make_samples(model, tok, cfg, device)
     torch.save(model.state_dict(), run_dir / "model.pt")
 
+    tokens_seen = stream.tokens_seen + (decay_stream.tokens_seen if decay_stream else 0)
+    epochs = tokens_seen / stream.total_tokens  # in units of the full train set
     log.update({
         "train_curve_format": "[elapsed seconds, mean train loss (nats/token) over the interval, lr]",
         "steps": step,
         "train_seconds": train_seconds,
-        "tokens_seen": stream.tokens_seen,
+        "tokens_seen": tokens_seen,
         # stories are read in random order, so the token fraction estimates the byte fraction
-        "bytes_seen_estimate": stream.epochs * train_bytes,
-        "epochs": stream.epochs,
-        "tokens_per_second": stream.tokens_seen / train_seconds,
+        "bytes_seen_estimate": epochs * train_bytes,
+        "epochs": epochs,
+        "tokens_per_second": tokens_seen / train_seconds,
+        "decay_gpt4_tokens_seen": decay_stream.tokens_seen if decay_stream else None,
+        "decay_gpt4_epochs": decay_stream.epochs if decay_stream else None,
         "peak_vram_bytes": torch.cuda.max_memory_allocated(),
         "val_slice_bytes": val_slice_bytes,
         "val_curve": val_curve,
@@ -275,7 +298,7 @@ def train(cfg: Config, final: bool = False, out_root: Path = Path("runs")) -> di
     })
     (run_dir / "log.json").write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
     plot_run(log, run_dir / "curves.png")
-    print(f"Done: {step} steps, {stream.tokens_seen:,} tokens ({stream.epochs:.3f} epochs) in "
+    print(f"Done: {step} steps, {tokens_seen:,} tokens ({epochs:.3f} epochs) in "
           f"{train_seconds:.1f}s; final val bpb {final_val:.4f}"
           + (f", test bpb {final_test:.4f}" if final else "") + f"\nLog: {run_dir / 'log.json'}")
     return log
