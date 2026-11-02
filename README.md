@@ -36,7 +36,8 @@ elapsed time unless stated. Peak learning rate = (range-test rise point) / 3, pe
 | E2 width / FFN (8 layers, ≈ equal params) | 448 / 416 (0.93×) | 9.41M | 1.4e-3 | 367M | 0.4489 |
 | | 384 / 768 (2×) | 9.44M | 1.6e-3 | 415M | 0.4384 |
 | | 320 / 1,216 (3.8×) | 9.51M | 1.7e-3 | 396M | 0.4361 |
-| E3 tokenizer (8 layers) | byte-level (char) | 9.44M | 1.3e-3 | 314M bytes | 0.8254 |
+| E3 tokenizer (8 layers) | byte-level (char), 32 × 4,128 bytes per step | 9.44M | 1.3e-3 | 314M bytes | 0.8254 |
+| | byte-level, 32 × 1,024 bytes per step (same tokens per step as BPE) | 9.44M | 1.1e-3 | 449M bytes | 0.5959 |
 | I1 tokenizer × depth | char, 4 layers | 4.72M | 2.5e-3 | 619M bytes | 0.6614 |
 | E5 staged data (8 layers) | WSD, GPT-4-only stories in the last 20% | 9.44M | 1.6e-3 | 416M | 0.4615 |
 
@@ -58,7 +59,7 @@ Project Gutenberg children's books, 1.47 MB, detokenised, evaluation only):
 
 1. **Size:** more parameters help up to about 8 layers, then level off (4 → 8: −0.023 bpb; 8 → 12: −0.003, a tie). Larger models are still improving at the deadline: budget-limited, not converged.
 2. **Shape:** at equal parameters, a 2–4× FFN is best; shifting parameters into width is slightly worse (+0.010), partly because it runs slower.
-3. **Tokenizer:** BPE beats bytes by a wide margin; the byte model reads ≈ 5× less text in the same time, despite using ≈ 18% more FLOPs.
+3. **Tokenizer:** BPE beats bytes by a wide margin; the byte model reads ≈ 5× less text in the same time, despite using ≈ 18% more FLOPs. Giving the byte model the same tokens per step as BPE (32 × 1,024 bytes: 5.8× more optimiser steps, ¼ of the context) improves it from 0.825 to 0.596, still 0.158 bpb behind BPE.
 4. **Interaction:** depth helps BPE (−0.023) but hurts the byte model (+0.164); interaction +0.187 bpb. A depth chosen for BPE does not transfer to byte-level modelling.
 5. **Data:** a GPT-4-only decay specialises the model: better on GPT-4 text, much worse on GPT-3.5 text, worse on the mixed test set, but better on real children's books. Schedule and data are confounded (no WSD-mixed control).
 
@@ -87,6 +88,7 @@ Learning-rate range tests are in `runs/lr/`.
 - **E0** (three baseline seeds) replaced by a single repeat of the 8-layer model.
 - **E1** run adaptively (8 → 4 → 12 layers); 1 and 2 layers not run. 12 layers tied with 8, so the cheaper 8 was kept.
 - **E2** ran two variants (0.93× and 3.8× FFN); the 7× variant was dropped. 3.8× tied with 2×, so 2× was kept.
+- **E3** adds a byte-level run with the same tokens per step as BPE (32 × 1,024 bytes) instead of the same bytes per step; its learning rate came from its own range test.
 - **I1** compares 4 vs 8 layers instead of 2 vs 8 (reuses E1's 4-layer run).
 - **E4** (SGD, Muon) and **I2** not run; optional O1–O3 not run.
 - **E5** ran only the GPT-4 arm and is compared with E1's cosine run, so schedule and data are confounded. Added per-source validation sets and the Children's Book Test.
@@ -138,6 +140,7 @@ py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe -m src.train --final --set stage=E2 run_name=L8_w448_f416 n_layers=8 d_model=448 ffn_size=416 lr=1.4e-3
 .\.venv\Scripts\python.exe -m src.train --final --set stage=E2 run_name=L8_w320_f1216 n_layers=8 d_model=320 ffn_size=1216 lr=1.7e-3
 .\.venv\Scripts\python.exe -m src.train --final --set stage=E3 run_name=L8_char n_layers=8 tokenizer=char context_length=4128 lr=1.3e-3
+.\.venv\Scripts\python.exe -m src.train --final --set stage=E3 run_name=L8_char_ctx1024 n_layers=8 tokenizer=char context_length=1024 lr=1.1e-3
 .\.venv\Scripts\python.exe -m src.train --final --set stage=I1 run_name=L4_char n_layers=4 tokenizer=char context_length=4128 lr=2.5e-3
 .\.venv\Scripts\python.exe -m src.train --final --set stage=E5 run_name=wsd_gpt4 n_layers=8 schedule=wsd decay_data=gpt4 lr=1.6e-3
 
@@ -145,6 +148,7 @@ py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe scripts\eval_sources.py runs\E1\L8
 .\.venv\Scripts\python.exe scripts\eval_cbt.py runs\E1\L8 runs\E5\wsd_gpt4
 .\.venv\Scripts\python.exe scripts\plot_curves.py runs\E1
+.\.venv\Scripts\python.exe scripts\plot_curves.py runs\E1\L8 runs\E3\L8_char runs\E3\L8_char_ctx1024 --out runs\E3\curves_overlay.png
 .\.venv\Scripts\python.exe scripts\interaction_plot.py --title "I1" --line BPE runs\E1\L4 runs\E1\L8 --line char runs\I1\L4_char runs\E3\L8_char --out runs\I1\interaction.png
 .\.venv\Scripts\python.exe scripts\plot_source_sets.py runs\E1\L8 runs\E5\wsd_gpt4 --out runs\E5\source_sets.png
 .\.venv\Scripts\python.exe scripts\plot_cbt.py runs\E1\L8 runs\E5\wsd_gpt4 --out runs\E5\cbt_test.png
