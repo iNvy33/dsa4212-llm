@@ -1,10 +1,17 @@
 """Figures across all reported BPE runs (the byte-level runs are excluded):
   runs/all_val_overlay.png  validation bpb (1 MB slice) over training time
   runs/all_test_bpb.png     final TinyStories test bpb per run
+  runs/all_test_ce.png      the same results as cross-entropy (nats per BPE token)
+
+Test cross-entropy is converted exactly from the logged test bpb: the test evaluation sums
+the loss over every token of test.bin except the first, so
+  CE = bpb * ln 2 * test bytes / (test tokens - 1),
+with both counts taken from the tokenizer's meta.json. No model is re-evaluated.
 
 Usage: .venv\\Scripts\\python.exe scripts\\plot_all.py
 """
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -55,11 +62,20 @@ def plot_val(runs, path: Path):
     plt.close(fig)
 
 
-def plot_test(runs, path: Path):
+def test_ce(log: dict) -> float:
+    """Test cross-entropy in nats per token, recovered from the logged test bpb."""
+    tok_dir = Path(log["config"]["data_dir"]) / "tokens" / log["config"]["tokenizer"]
+    test = json.loads((tok_dir / "meta.json").read_text(encoding="utf-8"))["splits"]["test"]
+    return log["final_test_bpb"] * math.log(2) * test["utf8_bytes"] / (test["tokens"] - 1)
+
+
+def plot_test(runs, path: Path, value=lambda log: log["final_test_bpb"],
+              xlabel="test bpb (TinyStories test split, lower is better)",
+              title="Final test bits per byte, BPE runs"):
     fig, ax = plt.subplots(figsize=(7.5, 4.5))
     fig.patch.set_facecolor(SURFACE)
     ys = list(range(len(runs)))[::-1]
-    vals = [log["final_test_bpb"] for _, log, _, _ in runs]
+    vals = [value(log) for _, log, _, _ in runs]
     for y, v, (label, log, color, ls) in zip(ys, vals, runs):
         ax.scatter(v, y, s=70, color=color, edgecolor=SURFACE, linewidth=2, zorder=2,
                    marker="D" if ls == "--" else "o")
@@ -71,8 +87,8 @@ def plot_test(runs, path: Path):
     _style(ax)
     ax.grid(True, axis="x", color=GRID)
     ax.grid(False, axis="y")
-    ax.set_xlabel("test bpb (TinyStories test split, lower is better)", fontsize=9)
-    fig.suptitle("Final test bits per byte, BPE runs", fontsize=11, color=INK, x=0.02, ha="left")
+    ax.set_xlabel(xlabel, fontsize=9)
+    fig.suptitle(title, fontsize=11, color=INK, x=0.02, ha="left")
     fig.tight_layout()
     fig.savefig(path, dpi=130, facecolor=SURFACE)
     plt.close(fig)
@@ -82,7 +98,12 @@ def main():
     runs = load()
     plot_val(runs, Path("runs/all_val_overlay.png"))
     plot_test(runs, Path("runs/all_test_bpb.png"))
-    print("Wrote runs/all_val_overlay.png and runs/all_test_bpb.png")
+    plot_test(runs, Path("runs/all_test_ce.png"), value=test_ce,
+              xlabel="test cross-entropy (nats per BPE token, TinyStories test split, lower is better)",
+              title="Final test cross-entropy, BPE runs")
+    for label, log, _, _ in runs:
+        print(f"{label:28s} test bpb {log['final_test_bpb']:.4f}  test CE {test_ce(log):.4f} nats/token")
+    print("Wrote runs/all_val_overlay.png, runs/all_test_bpb.png and runs/all_test_ce.png")
 
 
 if __name__ == "__main__":
