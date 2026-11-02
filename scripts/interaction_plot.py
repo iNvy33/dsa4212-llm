@@ -5,8 +5,8 @@ Usage:
       --line BPE runs\\E1\\L4 runs\\E1\\L8 --line char runs\\I1\\L4_char runs\\E3\\L8_char ^
       --out runs\\I1\\interaction.png
 
-Prints each line's depth effect (deep - shallow) and the interaction
-(difference of differences, second line minus first).
+Prints each line's depth effect (deep - shallow) and its interaction with the first
+line (difference of differences). Any number of lines.
 """
 import argparse
 import json
@@ -34,8 +34,9 @@ def main():
         (n0, y0), (n1, y1) = ((log["config"]["n_layers"], log[args.metric]) for log in logs)
         effects[level] = y1 - y0
         print(f"{level:>8}: {n0} layers {y0:.4f}  {n1} layers {y1:.4f}  depth effect {y1 - y0:+.4f}")
-    a, b = list(effects)
-    print(f"interaction ({b} effect - {a} effect): {effects[b] - effects[a]:+.4f}")
+    a, *others = list(effects)
+    for b in others:
+        print(f"interaction ({b} effect - {a} effect): {effects[b] - effects[a]:+.4f}")
     plot_interaction(lines, args.out, args.title, args.metric)
     print(f"Wrote {args.out}")
 

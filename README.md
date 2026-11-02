@@ -38,7 +38,8 @@ elapsed time unless stated. Peak learning rate = (range-test rise point) / 3, pe
 | | 320 / 1,216 (3.8×) | 9.51M | 1.7e-3 | 396M | 0.4361 |
 | E3 tokenizer (8 layers) | byte-level (char), 32 × 4,128 bytes per step | 9.44M | 1.3e-3 | 314M bytes | 0.8254 |
 | | byte-level, 32 × 1,024 bytes per step (same tokens per step as BPE) | 9.44M | 1.1e-3 | 449M bytes | 0.5959 |
-| I1 tokenizer × depth | char, 4 layers | 4.72M | 2.5e-3 | 619M bytes | 0.6614 |
+| I1 tokenizer × depth | char, 4 layers, 32 × 4,128 bytes per step | 4.72M | 2.5e-3 | 619M bytes | 0.6614 |
+| | char, 4 layers, 32 × 1,024 bytes per step | 4.72M | 1.9e-3 | 883M bytes | 0.6191 |
 | E5 staged data (8 layers) | WSD, GPT-4-only stories in the last 20% | 9.44M | 1.6e-3 | 416M | 0.4615 |
 
 **Seed noise.** Repeating the 8-layer run with another seed (initialisation and data order)
@@ -60,7 +61,7 @@ Project Gutenberg children's books, 1.47 MB, detokenised, evaluation only):
 1. **Size:** more parameters help up to about 8 layers, then level off (4 → 8: −0.023 bpb; 8 → 12: −0.003, a tie). Larger models are still improving at the deadline: budget-limited, not converged.
 2. **Shape:** at equal parameters, a 2–4× FFN is best; shifting parameters into width is slightly worse (+0.010), partly because it runs slower.
 3. **Tokenizer:** BPE beats bytes by a wide margin; the byte model reads ≈ 5× less text in the same time, despite using ≈ 18% more FLOPs. Giving the byte model the same tokens per step as BPE (32 × 1,024 bytes: 5.8× more optimiser steps, ¼ of the context) improves it from 0.825 to 0.596, still 0.158 bpb behind BPE.
-4. **Interaction:** depth helps BPE (−0.023) but hurts the byte model (+0.164); interaction +0.187 bpb. A depth chosen for BPE does not transfer to byte-level modelling.
+4. **Interaction:** with the same bytes per step (32 × 4,128), depth helps BPE (−0.023) but hurts the byte model (+0.164); interaction +0.187 bpb. With the same tokens per step (32 × 1,024), depth helps both equally (−0.023 each; interaction −0.001). The apparent interaction comes from the batch design: 32 × 4,128-byte steps are slow, and a deeper model gets too few of them in 30 minutes.
 5. **Data:** a GPT-4-only decay specialises the model: better on GPT-4 text, much worse on GPT-3.5 text, worse on the mixed test set, but better on real children's books. Schedule and data are confounded (no WSD-mixed control).
 
 ### Figures
@@ -75,7 +76,7 @@ E1–E5 analysis plots:
 | | |
 | --- | --- |
 | ![E1 depth](runs/E1/curves_overlay.png) | ![E2 width vs FFN](runs/E2/curves_overlay.png) |
-| ![I1 interaction](runs/I1/interaction.png) | ![E3 BPE vs char](runs/E3/curves_overlay.png) |
+| ![I1 interaction](runs/I1/interaction_all.png) | ![E3 BPE vs char](runs/E3/curves_overlay.png) |
 | ![E5 by source](runs/E5/source_sets.png) | ![E5 Children's Book Test](runs/E5/cbt_test.png) |
 
 Every run folder also has `curves.png` (train loss, validation bpb, learning rate over time)
@@ -89,7 +90,7 @@ Learning-rate range tests are in `runs/lr/`.
 - **E1** run adaptively (8 → 4 → 12 layers); 1 and 2 layers not run. 12 layers tied with 8, so the cheaper 8 was kept.
 - **E2** ran two variants (0.93× and 3.8× FFN); the 7× variant was dropped. 3.8× tied with 2×, so 2× was kept.
 - **E3** adds a byte-level run with the same tokens per step as BPE (32 × 1,024 bytes) instead of the same bytes per step; its learning rate came from its own range test.
-- **I1** compares 4 vs 8 layers instead of 2 vs 8 (reuses E1's 4-layer run).
+- **I1** compares 4 vs 8 layers instead of 2 vs 8 (reuses E1's 4-layer run), and is repeated with the same tokens per step as BPE (32 × 1,024 bytes).
 - **E4** (SGD, Muon) and **I2** not run; optional O1–O3 not run.
 - **E5** ran only the GPT-4 arm and is compared with E1's cosine run, so schedule and data are confounded. Added per-source validation sets and the Children's Book Test.
 - Learning-rate rule fixed at rise / 3 (top of the 3–10× band); no 10-minute confirmation runs.
@@ -142,6 +143,7 @@ py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe -m src.train --final --set stage=E3 run_name=L8_char n_layers=8 tokenizer=char context_length=4128 lr=1.3e-3
 .\.venv\Scripts\python.exe -m src.train --final --set stage=E3 run_name=L8_char_ctx1024 n_layers=8 tokenizer=char context_length=1024 lr=1.1e-3
 .\.venv\Scripts\python.exe -m src.train --final --set stage=I1 run_name=L4_char n_layers=4 tokenizer=char context_length=4128 lr=2.5e-3
+.\.venv\Scripts\python.exe -m src.train --final --set stage=I1 run_name=L4_char_ctx1024 n_layers=4 tokenizer=char context_length=1024 lr=1.9e-3
 .\.venv\Scripts\python.exe -m src.train --final --set stage=E5 run_name=wsd_gpt4 n_layers=8 schedule=wsd decay_data=gpt4 lr=1.6e-3
 
 # Extra evaluations and figures (need the runs' model.pt)
@@ -150,6 +152,7 @@ py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe scripts\plot_curves.py runs\E1
 .\.venv\Scripts\python.exe scripts\plot_curves.py runs\E1\L8 runs\E3\L8_char runs\E3\L8_char_ctx1024 --out runs\E3\curves_overlay.png
 .\.venv\Scripts\python.exe scripts\interaction_plot.py --title "I1" --line BPE runs\E1\L4 runs\E1\L8 --line char runs\I1\L4_char runs\E3\L8_char --out runs\I1\interaction.png
+.\.venv\Scripts\python.exe scripts\interaction_plot.py --title "I1: tokenizer x depth, both char batch designs" --line BPE runs\E1\L4 runs\E1\L8 --line "char (32 x 4,128 bytes)" runs\I1\L4_char runs\E3\L8_char --line "char (32 x 1,024 bytes)" runs\I1\L4_char_ctx1024 runs\E3\L8_char_ctx1024 --out runs\I1\interaction_all.png
 .\.venv\Scripts\python.exe scripts\plot_source_sets.py runs\E1\L8 runs\E5\wsd_gpt4 --out runs\E5\source_sets.png
 .\.venv\Scripts\python.exe scripts\plot_cbt.py runs\E1\L8 runs\E5\wsd_gpt4 --out runs\E5\cbt_test.png
 .\.venv\Scripts\python.exe scripts\flops_table.py

@@ -109,8 +109,9 @@ def plot_interaction(lines: dict[str, list[dict]], path: Path, title: str, metri
         for x, y in pts:
             ax.annotate(f"{y:.4f}", (x, y), xytext=(0, 9), textcoords="offset points",
                         ha="center", va="bottom", fontsize=8, color=INK)
-        ax.annotate(level, (xs[0], ys[0]), xytext=(-10, 0), textcoords="offset points",
-                    ha="right", va="center", fontsize=9, color=INK)
+        if len(level) <= 8:  # longer names would run into the y-axis; the legend names them
+            ax.annotate(level, (xs[0], ys[0]), xytext=(-10, 0), textcoords="offset points",
+                        ha="right", va="center", fontsize=9, color=INK)
     xs_all = sorted({log["config"]["n_layers"] for logs in lines.values() for log in logs})
     ax.set_xticks(xs_all)
     ax.set_xlim(xs_all[0] - 0.35 * (xs_all[-1] - xs_all[0]), xs_all[-1] + 0.3 * (xs_all[-1] - xs_all[0]))
