@@ -31,3 +31,15 @@ def test_clean_rules():
     assert [s["story"] for s in kept] == ["A cat sat.", "She said “hi”."]
     assert kept[0]["source"] == "GPT-4"
     assert removed == {"empty": 1, "mojibake": 1, "duplicate": 1}
+
+
+def test_subset_is_stratified_deterministic_and_unique():
+    from src.data_subset import subset_indices
+    sources = ["GPT-4"] * 600 + ["GPT-3.5"] * 400
+    a = subset_indices(sources, 0.1, seed=1234)
+    assert len(a) == 100 and len(set(a.tolist())) == 100
+    assert np.all(np.diff(a) > 0)  # sorted: keeps the full file's order
+    picked = [sources[i] for i in a]
+    assert picked.count("GPT-4") == 60 and picked.count("GPT-3.5") == 40
+    assert np.array_equal(a, subset_indices(sources, 0.1, seed=1234))
+    assert not np.array_equal(a, subset_indices(sources, 0.1, seed=1))

@@ -21,3 +21,13 @@ __pycache__/
 /runs/dev/
 /runs/phase0/
 /runs/*_stdout.txt
+
+# Reduced-data copies (src/data_subset.py): same rule as data/.
+/data_*/*
+!/data_*/tokenizers/
+!/data_*/stories/
+/data_*/stories/*
+!/data_*/stories/meta.json
+!/data_*/tokens/
+/data_*/tokens/*/*
+!/data_*/tokens/*/meta.json

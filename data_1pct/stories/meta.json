@@ -1,0 +1,56 @@
+{
+  "repo_id": "roneneldan/TinyStories",
+  "archive": "TinyStories_all_data.tar.gz",
+  "revision": "f54c09fd23315a6f9c86f9dc80f725de7d8f9c64",
+  "split_seed": 1234,
+  "raw_stories": 4967871,
+  "raw_sources": {
+    "GPT-4": 2745330,
+    "GPT-3.5": 2222541
+  },
+  "removed": {
+    "empty": 210,
+    "mojibake": 4,
+    "duplicate": 14
+  },
+  "splits": {
+    "train": {
+      "stories": 49477,
+      "utf8_bytes": 38242513,
+      "sources": {
+        "GPT-3.5": 22137,
+        "GPT-4": 27340
+      }
+    },
+    "val": {
+      "stories": 10000,
+      "utf8_bytes": 7773461,
+      "sources": {
+        "GPT-3.5": 4438,
+        "GPT-4": 5562
+      }
+    },
+    "test": {
+      "stories": 10000,
+      "utf8_bytes": 7750711,
+      "sources": {
+        "GPT-3.5": 4419,
+        "GPT-4": 5581
+      }
+    }
+  },
+  "subset": {
+    "of": "data",
+    "fraction": 0.01,
+    "seed": 1234,
+    "stratified_by": "source",
+    "full_train": {
+      "stories": 4947643,
+      "utf8_bytes": 3829288571,
+      "sources": {
+        "GPT-3.5": 2213668,
+        "GPT-4": 2733975
+      }
+    }
+  }
+}
