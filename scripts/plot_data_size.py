@@ -1,5 +1,7 @@
-"""Full vs reduced training data, one panel per tokenizer: validation bpb (solid) and
-training loss in approx. bits/byte (dashed), so the train-validation gap shows overfitting.
+"""Full vs reduced training data:
+  runs/D5/data_size.png       one panel per tokenizer: validation bpb (solid) and training
+                              loss in approx. bits/byte (dashed), so the gap shows overfitting
+  runs/D5/data_size_test.png  test bpb against training-data size, one line per tokenizer
 
 Usage: .venv\\Scripts\\python.exe scripts\\plot_data_size.py
 """
@@ -21,6 +23,39 @@ PANELS = [
                                      ("5% data", "runs/D5/L4_char_ctx1024")]),
 ]
 OUT = Path("runs/D5/data_size.png")
+OUT_TEST = Path("runs/D5/data_size_test.png")
+SIZES = ["5% data\n(191 MB)", "full data\n(3.8 GB)"]
+LINES = [("BPE", PANELS[0][1]), ("char (32 x 1,024)", PANELS[1][1])]
+
+
+def plot_test():
+    """Test bpb at 5% and full data; each point labelled with its value and epochs."""
+    fig, ax = plt.subplots(figsize=(6.5, 4.6))
+    fig.patch.set_facecolor(SURFACE)
+    for i, (level, runs) in enumerate(LINES):
+        logs = [json.loads((Path(d) / "log.json").read_text(encoding="utf-8")) for _, d in runs[::-1]]
+        ys = [log["final_test_bpb"] for log in logs]
+        ax.plot([0, 1], ys, color=SERIES[i], lw=2, marker="o", ms=8, markeredgecolor=SURFACE,
+                markeredgewidth=2, label=level)
+        for x, y, log in zip([0, 1], ys, logs):
+            ax.annotate(f"{y:.4f}\n{log['epochs']:.1f} epochs", (x, y), xytext=(0, 9),
+                        textcoords="offset points", ha="center", va="bottom", fontsize=8, color=INK)
+        ax.annotate(f"{ys[1] - ys[0]:+.3f}", (0.5, (ys[0] + ys[1]) / 2), xytext=(0, -12),
+                    textcoords="offset points", ha="center", fontsize=8, color=SERIES[i])
+    ax.set_xticks([0, 1], SIZES)
+    ax.set_xlim(-0.4, 1.4)
+    lo, hi = ax.get_ylim()
+    ax.set_ylim(lo, hi + 0.12 * (hi - lo))
+    ax.set_ylabel("test bpb (TinyStories test split, lower is better)", fontsize=9)
+    _style(ax)
+    ax.grid(False, axis="x")
+    ax.legend(fontsize=8, frameon=False, loc="center right")
+    fig.suptitle("Test bpb vs training-data size, 4 layers, 30 minutes", fontsize=11, color=INK,
+                 x=0.02, ha="left")
+    fig.tight_layout()
+    fig.savefig(OUT_TEST, dpi=130, facecolor=SURFACE)
+    plt.close(fig)
+    print(f"Wrote {OUT_TEST}")
 
 
 def main():
@@ -50,6 +85,7 @@ def main():
     fig.savefig(OUT, dpi=130, facecolor=SURFACE)
     plt.close(fig)
     print(f"Wrote {OUT}")
+    plot_test()
 
 
 if __name__ == "__main__":

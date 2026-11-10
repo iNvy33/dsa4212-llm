@@ -75,7 +75,9 @@ on the subset; same val/test; learning rates from new range tests on the subset)
 | char, 32 × 1,024 | full | 1.9e-3 | 0.2 | 0.6250 (1 MB slice) | 0.6191 |
 | char, 32 × 1,024 | 5% | 1.8e-3 | 4.7 | 0.6258 (1 MB slice) | 0.6200 (+0.001) |
 
-![Full vs 5% data](runs/D5/data_size.png)
+| | |
+| --- | --- |
+| ![Test bpb vs data size](runs/D5/data_size_test.png) | ![Full vs 5% data curves](runs/D5/data_size.png) |
 
 ### Main findings
 
