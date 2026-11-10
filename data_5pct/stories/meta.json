@@ -15,11 +15,11 @@
   },
   "splits": {
     "train": {
-      "stories": 49477,
-      "utf8_bytes": 38242513,
+      "stories": 247382,
+      "utf8_bytes": 191270687,
       "sources": {
-        "GPT-3.5": 22137,
-        "GPT-4": 27340
+        "GPT-3.5": 110683,
+        "GPT-4": 136699
       }
     },
     "val": {
@@ -41,7 +41,7 @@
   },
   "subset": {
     "of": "data",
-    "fraction": 0.01,
+    "fraction": 0.05,
     "seed": 1234,
     "stratified_by": "source",
     "full_train": {

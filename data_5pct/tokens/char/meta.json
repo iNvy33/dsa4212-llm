@@ -5,9 +5,9 @@
   "layout": "EOT s1 EOT s2 ... EOT sN EOT",
   "splits": {
     "train": {
-      "stories": 49477,
-      "tokens": 38291991,
-      "utf8_bytes": 38242513,
+      "stories": 247382,
+      "tokens": 191518070,
+      "utf8_bytes": 191270687,
       "bytes_per_token": 1.0
     },
     "val": {

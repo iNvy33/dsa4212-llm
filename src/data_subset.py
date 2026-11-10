@@ -1,6 +1,6 @@
 """Make a reduced-data copy of the story splits: a fraction of the train stories, same val/test.
 
-Usage: .venv\\Scripts\\python.exe -m src.data_subset --fraction 0.01 --out data_1pct
+Usage: .venv\\Scripts\\python.exe -m src.data_subset --fraction 0.05 --out data_5pct
 
 The train subset is a seeded random sample taken separately within each source
 (GPT-3.5, GPT-4), so the source mix matches the full train split. Selected stories
