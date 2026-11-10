@@ -10,7 +10,7 @@ seed: 0                  # Python, NumPy and torch seed; also sets the train dat
 data_dir: data
 tokenizer: bpe4096       # "bpe4096" (own byte-level BPE) or "char" (UTF-8 bytes + EOT)
 context_length: 1024     # tokens per sequence; p99.9 train story length (799) rounded up
-                         # to a power of 2. Char runs use 4128 (= 1024 x 4.03 bytes/token)
+                         # to a power of 2. Char runs use the same 1024 (same tokens per step)
 
 # --- Model (pre-norm GPT, RMSNorm, sinusoidal positions, tied embeddings, no biases) ---
 n_layers: 4

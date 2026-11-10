@@ -2,7 +2,7 @@
 
 Usage:
   .venv\\Scripts\\python.exe scripts\\interaction_plot.py --title "I1: tokenizer x depth" ^
-      --line BPE runs\\E1\\L4 runs\\E1\\L8 --line char runs\\I1\\L4_char runs\\E3\\L8_char ^
+      --line BPE runs\\E1\\L4 runs\\E1\\L8 --line char runs\\I1\\L4_char_ctx1024 runs\\E3\\L8_char_ctx1024 ^
       --out runs\\I1\\interaction.png
 
 Prints each line's depth effect (deep - shallow) and its interaction with the first
