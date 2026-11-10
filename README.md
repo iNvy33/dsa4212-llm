@@ -65,6 +65,18 @@ TinyStories BPE compresses these books to 3.38 bytes/token (4.03 on TinyStories)
 | char, 4 layers / 8 layers | 0.619 / 0.596 | 2.018 / 1.974 |
 | char − BPE (8 layers) | +0.158 (+36%) | +0.079 (+4%) |
 
+**D5: 5% of the training data** (4 layers; 247k stories, 191 MB, stratified by source, BPE retrained
+on the subset; same val/test; learning rates from new range tests on the subset):
+
+| Model | Data | LR | Epochs | Final val bpb | Test bpb |
+| --- | --- | --- | --- | --- | --- |
+| BPE | full | 1.8e-3 | 0.8 | 0.4669 (1 MB slice) | 0.4610 |
+| BPE | 5% | 2.0e-3 | 15.5 | 0.4827 (1 MB slice) | 0.4766 (+0.016) |
+| char, 32 × 1,024 | full | 1.9e-3 | 0.2 | 0.6250 (1 MB slice) | 0.6191 |
+| char, 32 × 1,024 | 5% | 1.8e-3 | 4.7 | 0.6258 (1 MB slice) | 0.6200 (+0.001) |
+
+![Full vs 5% data](runs/D5/data_size.png)
+
 ### Main findings
 
 1. **Size:** more parameters help up to about 8 layers, then level off (4 → 8: −0.023 bpb; 8 → 12: −0.003, a tie). Larger models are still improving at the deadline: budget-limited, not converged.
@@ -72,6 +84,7 @@ TinyStories BPE compresses these books to 3.38 bytes/token (4.03 on TinyStories)
 3. **Tokenizer:** BPE beats bytes by a wide margin; the byte model reads ≈ 5× less text in the same time, despite using ≈ 18% more FLOPs. Giving the byte model the same tokens per step as BPE (32 × 1,024 bytes: 5.8× more optimiser steps, ¼ of the context) improves it from 0.825 to 0.596, still 0.158 bpb behind BPE.
 4. **Interaction:** with the same bytes per step (32 × 4,128), depth helps BPE (−0.023) but hurts the byte model (+0.164); interaction +0.187 bpb. With the same tokens per step (32 × 1,024), depth helps both equally (−0.023 each; interaction −0.001). The apparent interaction comes from the batch design: 32 × 4,128-byte steps are slow, and a deeper model gets too few of them in 30 minutes.
 5. **Data:** a GPT-4-only decay specialises the model: better on GPT-4 text, much worse on GPT-3.5 text, worse on the mixed test set, but better on real children's books. Schedule and data are confounded (no WSD-mixed control).
+6. **Data size:** with 5% of the training data, BPE repeats it 15.5 times in 30 minutes and loses 0.016 bpb (train loss falls 0.046 below validation, in an epoch-by-epoch staircase: memorisation). The byte model repeats it only 4.7 times and is unaffected (+0.001). BPE still wins, but its lead narrows from 0.158 to 0.143 bpb.
 
 ### Figures
 
@@ -102,6 +115,7 @@ Learning-rate range tests are in `runs/lr/`.
 - **I1** compares 4 vs 8 layers instead of 2 vs 8 (reuses E1's 4-layer run), and is repeated with the same tokens per step as BPE (32 × 1,024 bytes).
 - **E4** (SGD, Muon) and **I2** not run; optional O1–O3 not run.
 - **E5** ran only the GPT-4 arm and is compared with E1's cosine run, so schedule and data are confounded. Added per-source validation sets and the Children's Book Test.
+- **D5** (not in PLAN.md): BPE vs byte-level at 4 layers on a 5% train subset (`src/data_subset.py`, `data_5pct/`).
 - Learning-rate rule fixed at rise / 3 (top of the 3–10× band); no 10-minute confirmation runs.
 
 ## Repository layout
@@ -167,6 +181,16 @@ py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe scripts\eval_cbt.py runs\E1\L4 runs\I1\L4_char runs\E3\L8_char runs\I1\L4_char_ctx1024 runs\E3\L8_char_ctx1024
 .\.venv\Scripts\python.exe scripts\plot_cbt.py runs\E1\L8 runs\E3\L8_char_ctx1024 --out runs\E3\cbt_test.png
 .\.venv\Scripts\python.exe scripts\flops_table.py
+
+# D5: 5% training subset (val/test unchanged), its tokenizers, range tests and runs
+.\.venv\Scripts\python.exe -m src.data_subset --fraction 0.05 --out data_5pct
+.\.venv\Scripts\python.exe -m src.tokenizer --tokenizer bpe --vocab-size 4096 --data-dir data_5pct
+.\.venv\Scripts\python.exe -m src.tokenizer --tokenizer char --data-dir data_5pct
+.\.venv\Scripts\python.exe -m src.lr_find --set stage=lr run_name=baseline_5pct data_dir=data_5pct
+.\.venv\Scripts\python.exe -m src.lr_find --set stage=lr run_name=L4_char_ctx1024_5pct data_dir=data_5pct n_layers=4 tokenizer=char context_length=1024
+.\.venv\Scripts\python.exe -m src.train --final --set stage=D5 run_name=L4_bpe data_dir=data_5pct lr=2.0e-3
+.\.venv\Scripts\python.exe -m src.train --final --set stage=D5 run_name=L4_char_ctx1024 data_dir=data_5pct n_layers=4 tokenizer=char context_length=1024 lr=1.8e-3
+.\.venv\Scripts\python.exe scripts\plot_data_size.py
 ```
 
 Results will differ slightly between machines: GPU arithmetic is not bit-exact and the budget is
