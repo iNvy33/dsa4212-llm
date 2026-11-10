@@ -164,6 +164,8 @@ py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe scripts\interaction_plot.py --title "I1: tokenizer x depth, both char batch designs" --line BPE runs\E1\L4 runs\E1\L8 --line "char (32 x 4,128 bytes)" runs\I1\L4_char runs\E3\L8_char --line "char (32 x 1,024 bytes)" runs\I1\L4_char_ctx1024 runs\E3\L8_char_ctx1024 --out runs\I1\interaction_all.png
 .\.venv\Scripts\python.exe scripts\plot_source_sets.py runs\E1\L8 runs\E5\wsd_gpt4 --out runs\E5\source_sets.png
 .\.venv\Scripts\python.exe scripts\plot_cbt.py runs\E1\L8 runs\E5\wsd_gpt4 --out runs\E5\cbt_test.png
+.\.venv\Scripts\python.exe scripts\eval_cbt.py runs\E1\L4 runs\I1\L4_char runs\E3\L8_char runs\I1\L4_char_ctx1024 runs\E3\L8_char_ctx1024
+.\.venv\Scripts\python.exe scripts\plot_cbt.py runs\E1\L8 runs\E3\L8_char_ctx1024 --out runs\E3\cbt_test.png
 .\.venv\Scripts\python.exe scripts\flops_table.py
 ```
 
