@@ -1,5 +1,6 @@
 """Full vs reduced training data:
   runs/D5/data_size.png       training loss (approx. bits/byte) of all four runs on one axis
+  runs/D5/data_size_val.png   validation bpb (1 MB slice) of all four runs on one axis
   runs/D5/data_size_test.png  test bpb against training-data size, one line per tokenizer
 
 Usage: .venv\\Scripts\\python.exe scripts\\plot_data_size.py
@@ -21,6 +22,7 @@ LINES = [
     ("char", [("full data", "runs/I1/L4_char_ctx1024"), ("5% data", "runs/D5/L4_char_ctx1024")]),
 ]
 OUT = Path("runs/D5/data_size.png")
+OUT_VAL = Path("runs/D5/data_size_val.png")
 OUT_TEST = Path("runs/D5/data_size_test.png")
 SIZES = ["5% data\n(191 MB)", "full data\n(3.8 GB)"]
 
@@ -55,31 +57,41 @@ def plot_test():
     print(f"Wrote {OUT_TEST}")
 
 
-def main():
-    """Training loss of all four runs on one axis: BPE blue/purple, char orange/yellow (full/5%)."""
+def plot_curves(val: bool, out: Path):
+    """Training loss (val=False) or validation bpb (val=True) of all four runs on one axis.
+    Colours: BPE blue/purple, char orange/yellow (full/5% data)."""
     fig, ax = plt.subplots(figsize=(8, 4.8))
     fig.patch.set_facecolor(SURFACE)
     all_t, all_y = [], []
     for slots, (level, runs) in zip([(0, 6), (1, 3)], LINES):
         for slot, (label, d) in zip(slots, runs):
             log = json.loads((Path(d) / "log.json").read_text(encoding="utf-8"))
-            t, loss, _, _, _ = _curves(log, train_in_bpb=True)
-            ax.plot(t, loss, color=SERIES[slot], lw=1.8,
-                    label=f"{level}, {label} ({log['epochs']:.1f} epochs): {loss[-1]:.3f}")
+            t, y, _, vt, vbpb = _curves(log, train_in_bpb=True)
+            if val:
+                t, y = vt, vbpb
+            ax.plot(t, y, color=SERIES[slot], lw=1.8, marker="o" if val else None, ms=4,
+                    markeredgecolor=SURFACE,
+                    label=f"{level}, {label} ({log['epochs']:.1f} epochs): {y[-1]:.3f}")
             all_t += t
-            all_y += loss
+            all_y += y
     _zoom(ax, all_t, all_y, max(all_t), frac=0.2)
     _style(ax)
     ax.set_xlim(left=0)
-    ax.set_ylabel("train loss (approx. bits/byte, 10 s mean)", fontsize=9)
+    ax.set_ylabel("validation bpb (1 MB slice)" if val else "train loss (approx. bits/byte, 10 s mean)",
+                  fontsize=9)
     ax.set_xlabel("training time (minutes)  -  axis zoomed to the last 80%", fontsize=9)
     ax.legend(fontsize=8, frameon=False, loc="upper right")
-    fig.suptitle("Training loss, full vs 5% training data, 4 layers", fontsize=11, color=INK,
-                 x=0.02, ha="left")
+    fig.suptitle(f"{'Validation bpb' if val else 'Training loss'}, full vs 5% training data, 4 layers",
+                 fontsize=11, color=INK, x=0.02, ha="left")
     fig.tight_layout()
-    fig.savefig(OUT, dpi=130, facecolor=SURFACE)
+    fig.savefig(out, dpi=130, facecolor=SURFACE)
     plt.close(fig)
-    print(f"Wrote {OUT}")
+    print(f"Wrote {out}")
+
+
+def main():
+    plot_curves(val=False, out=OUT)
+    plot_curves(val=True, out=OUT_VAL)
     plot_test()
 
 

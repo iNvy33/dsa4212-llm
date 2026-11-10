@@ -76,6 +76,7 @@ on the subset; same val/test; learning rates from new range tests on the subset)
 | | |
 | --- | --- |
 | ![Test bpb vs data size](runs/D5/data_size_test.png) | ![Training loss, full vs 5% data](runs/D5/data_size.png) |
+| ![Validation bpb, full vs 5% data](runs/D5/data_size_val.png) | |
 
 ### Main findings
 
