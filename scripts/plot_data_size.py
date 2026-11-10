@@ -15,16 +15,14 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.plots import INK, SERIES, SURFACE, _curves, _style, _zoom  # noqa: E402
 
-# (panel title, [(label, run folder), ...]); full data first, reduced second.
-PANELS = [
-    ("BPE, 4 layers", [("full data", "runs/E1/L4"), ("5% data", "runs/D5/L4_bpe")]),
-    ("char, 4 layers", [("full data", "runs/I1/L4_char_ctx1024"),
-                                     ("5% data", "runs/D5/L4_char_ctx1024")]),
+# (tokenizer, [(label, run folder), ...]); full data first, reduced second. All 4 layers.
+LINES = [
+    ("BPE", [("full data", "runs/E1/L4"), ("5% data", "runs/D5/L4_bpe")]),
+    ("char", [("full data", "runs/I1/L4_char_ctx1024"), ("5% data", "runs/D5/L4_char_ctx1024")]),
 ]
 OUT = Path("runs/D5/data_size.png")
 OUT_TEST = Path("runs/D5/data_size_test.png")
 SIZES = ["5% data\n(191 MB)", "full data\n(3.8 GB)"]
-LINES = [("BPE", PANELS[0][1]), ("char", PANELS[1][1])]
 
 
 def plot_test():
