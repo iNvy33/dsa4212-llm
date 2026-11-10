@@ -1039,5 +1039,36 @@
       "prompt": "In a small house by the sea, there lived",
       "text": "In a small house by the sea, there lived a lot of one things. One day, he found a zebra tub wanted to read a frog. He picked it up and showed it to his friend, Sam. They brought it home and told him to stay but he was too play with the ball"
     }
-  ]
+  ],
+  "cbt_test": {
+    "bpb": 2.2991574998934445,
+    "utf8_bytes": 1469174,
+    "books": [
+      {
+        "title": "Andrew Lang: The Yellow Fairy Book",
+        "utf8_bytes": 575395,
+        "bpb": 2.1494510014004726
+      },
+      {
+        "title": "Lewis Carroll: Alice's Adventures in Wonderland",
+        "utf8_bytes": 142823,
+        "bpb": 2.4929667253385173
+      },
+      {
+        "title": "Lucy Maud Montgomery: Lucy Maud Montgomery Short Stories, 1902 to 1903",
+        "utf8_bytes": 400643,
+        "bpb": 2.390462905577959
+      },
+      {
+        "title": "Rudyard Kipling: The Jungle Book",
+        "utf8_bytes": 270558,
+        "bpb": 2.4374928369148803
+      },
+      {
+        "title": "Thornton Waldo Burgess: The Adventures of Old Mr. Toad",
+        "utf8_bytes": 79755,
+        "bpb": 2.1042023488824166
+      }
+    ]
+  }
 }

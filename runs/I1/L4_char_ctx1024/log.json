@@ -1059,5 +1059,36 @@
       "prompt": "In a small house by the sea, there lived",
       "text": "In a small house by the sea, there lived a child named Tim. Tim loved to play and explore the water. One day, he saw a little fish crown and he was weak. He wanted to help his friend find him.\nTim asked the fish, \"Where can you find me?\" Th"
     }
-  ]
+  ],
+  "cbt_test": {
+    "bpb": 2.017978390896154,
+    "utf8_bytes": 1469174,
+    "books": [
+      {
+        "title": "Andrew Lang: The Yellow Fairy Book",
+        "utf8_bytes": 575395,
+        "bpb": 1.8710040875557485
+      },
+      {
+        "title": "Lewis Carroll: Alice's Adventures in Wonderland",
+        "utf8_bytes": 142823,
+        "bpb": 2.05995531191323
+      },
+      {
+        "title": "Lucy Maud Montgomery: Lucy Maud Montgomery Short Stories, 1902 to 1903",
+        "utf8_bytes": 400643,
+        "bpb": 2.1376965320772996
+      },
+      {
+        "title": "Rudyard Kipling: The Jungle Book",
+        "utf8_bytes": 270558,
+        "bpb": 2.1908275136380784
+      },
+      {
+        "title": "Thornton Waldo Burgess: The Adventures of Old Mr. Toad",
+        "utf8_bytes": 79755,
+        "bpb": 1.8153962492383735
+      }
+    ]
+  }
 }

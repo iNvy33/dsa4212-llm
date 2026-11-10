@@ -56,6 +56,15 @@ Project Gutenberg children's books, 1.47 MB, detokenised, evaluation only):
 | GPT-4 stories only (4.50 MB) | 0.476 | **0.466** |
 | Children's Book Test, all 5 books | 1.894 | **1.867** (better on every book) |
 
+**Tokenizer out of domain** (Children's Book Test, all 5 books; char = 32 × 1,024 bytes per step). The
+TinyStories BPE compresses these books to 3.38 bytes/token (4.03 on TinyStories), and BPE's lead shrinks:
+
+| Model | TinyStories test bpb | CBT bpb |
+| --- | --- | --- |
+| BPE, 4 layers / 8 layers | 0.461 / 0.438 | 1.917 / 1.894 |
+| char, 4 layers / 8 layers | 0.619 / 0.596 | 2.018 / 1.974 |
+| char − BPE (8 layers) | +0.158 (+36%) | +0.079 (+4%) |
+
 ### Main findings
 
 1. **Size:** more parameters help up to about 8 layers, then level off (4 → 8: −0.023 bpb; 8 → 12: −0.003, a tie). Larger models are still improving at the deadline: budget-limited, not converged.

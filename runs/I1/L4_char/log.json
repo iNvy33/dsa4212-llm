@@ -1039,5 +1039,36 @@
       "prompt": "In a small house by the sea, there lived",
       "text": "In a small house by the sea, there lived a cheerful nameD. The sea lived in a big zoo. It was a sunny day for the right rest of the woods. The sea lived in a big field with many other sea.\nOne day, Fluffy saw some berries playing with a bal"
     }
-  ]
+  ],
+  "cbt_test": {
+    "bpb": 2.034674244677244,
+    "utf8_bytes": 1469174,
+    "books": [
+      {
+        "title": "Andrew Lang: The Yellow Fairy Book",
+        "utf8_bytes": 575395,
+        "bpb": 1.8905594781755983
+      },
+      {
+        "title": "Lewis Carroll: Alice's Adventures in Wonderland",
+        "utf8_bytes": 142823,
+        "bpb": 2.1230483916053613
+      },
+      {
+        "title": "Lucy Maud Montgomery: Lucy Maud Montgomery Short Stories, 1902 to 1903",
+        "utf8_bytes": 400643,
+        "bpb": 2.1539868028792974
+      },
+      {
+        "title": "Rudyard Kipling: The Jungle Book",
+        "utf8_bytes": 270558,
+        "bpb": 2.1747288507948124
+      },
+      {
+        "title": "Thornton Waldo Burgess: The Adventures of Old Mr. Toad",
+        "utf8_bytes": 79755,
+        "bpb": 1.8416633977936352
+      }
+    ]
+  }
 }

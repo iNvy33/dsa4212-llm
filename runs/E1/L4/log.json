@@ -1039,5 +1039,36 @@
       "prompt": "In a small house by the sea, there lived",
       "text": "In a small house by the sea, there lived a little boy named Tim. He was excited because he had a toy boat. He wanted to play with it in the water. Tim took his boat and went outside.\nAs Tim played with his boat, a big fish jumped out of the water. The fish was very mad! Tim was scared and did not know what to do. He tried to get his boat back, but the fish jumped away.\nJust when Tim thought he was gone forever, a tiny fish jumped out of the water. The fish was not happy. It opened its mouth and ate all the food. Tim and the fish were very sad. They never played with a toy boat again."
     }
-  ]
+  ],
+  "cbt_test": {
+    "bpb": 1.9174249734535356,
+    "utf8_bytes": 1469174,
+    "books": [
+      {
+        "title": "Andrew Lang: The Yellow Fairy Book",
+        "utf8_bytes": 575395,
+        "bpb": 1.7394938370108124
+      },
+      {
+        "title": "Lewis Carroll: Alice's Adventures in Wonderland",
+        "utf8_bytes": 142823,
+        "bpb": 1.9850749693368086
+      },
+      {
+        "title": "Lucy Maud Montgomery: Lucy Maud Montgomery Short Stories, 1902 to 1903",
+        "utf8_bytes": 400643,
+        "bpb": 2.04057706757619
+      },
+      {
+        "title": "Rudyard Kipling: The Jungle Book",
+        "utf8_bytes": 270558,
+        "bpb": 2.130750046438185
+      },
+      {
+        "title": "Thornton Waldo Burgess: The Adventures of Old Mr. Toad",
+        "utf8_bytes": 79755,
+        "bpb": 1.7376479231025936
+      }
+    ]
+  }
 }

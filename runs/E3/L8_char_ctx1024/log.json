@@ -1059,5 +1059,36 @@
       "prompt": "In a small house by the sea, there lived",
       "text": "In a small house by the sea, there lived a curious little girl named Lily. She loved to explore and come all day. One day, she found a shark in the water. It was scared of her beak and she didn't know where it was going.\nLily asked her mom,"
     }
-  ]
+  ],
+  "cbt_test": {
+    "bpb": 1.9734609192675459,
+    "utf8_bytes": 1469174,
+    "books": [
+      {
+        "title": "Andrew Lang: The Yellow Fairy Book",
+        "utf8_bytes": 575395,
+        "bpb": 1.8267356964453652
+      },
+      {
+        "title": "Lewis Carroll: Alice's Adventures in Wonderland",
+        "utf8_bytes": 142823,
+        "bpb": 2.0279454892215414
+      },
+      {
+        "title": "Lucy Maud Montgomery: Lucy Maud Montgomery Short Stories, 1902 to 1903",
+        "utf8_bytes": 400643,
+        "bpb": 2.0922949249636247
+      },
+      {
+        "title": "Rudyard Kipling: The Jungle Book",
+        "utf8_bytes": 270558,
+        "bpb": 2.1392382107873416
+      },
+      {
+        "title": "Thornton Waldo Burgess: The Adventures of Old Mr. Toad",
+        "utf8_bytes": 79755,
+        "bpb": 1.7751150458818281
+      }
+    ]
+  }
 }
