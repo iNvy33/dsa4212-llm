@@ -56,15 +56,15 @@ def plot_test():
 
 
 def main():
-    """Training loss of all four runs on one axis: colour = tokenizer, dashed = 5% data."""
+    """Training loss of all four runs on one axis: BPE blue/purple, char orange/yellow (full/5%)."""
     fig, ax = plt.subplots(figsize=(8, 4.8))
     fig.patch.set_facecolor(SURFACE)
     all_t, all_y = [], []
-    for i, (level, runs) in enumerate(LINES):
-        for (label, d), ls in zip(runs, ["-", "--"]):
+    for slots, (level, runs) in zip([(0, 6), (1, 3)], LINES):
+        for slot, (label, d) in zip(slots, runs):
             log = json.loads((Path(d) / "log.json").read_text(encoding="utf-8"))
             t, loss, _, _, _ = _curves(log, train_in_bpb=True)
-            ax.plot(t, loss, color=SERIES[i], lw=1.8, ls=ls,
+            ax.plot(t, loss, color=SERIES[slot], lw=1.8,
                     label=f"{level}, {label} ({log['epochs']:.1f} epochs): {loss[-1]:.3f}")
             all_t += t
             all_y += loss
