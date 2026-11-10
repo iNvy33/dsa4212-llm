@@ -25,7 +25,7 @@ def flops_per_token(cfg: dict) -> tuple[float, float]:
 
 def main():
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("runs")
-    stages = ("E1", "E2", "E3", "I1", "E5")
+    stages = ("E1", "E2", "E3", "I1", "E5", "D5")
     rows = []
     for stage in stages:
         for log_path in sorted((root / stage).glob("*/log.json")):
@@ -39,7 +39,8 @@ def main():
     for name, cfg, total in rows:
         desc = (f"{name}: {cfg['n_layers']}x{cfg['d_model']}/{cfg['ffn_size']} {cfg['tokenizer']}"
                 f"{', seed ' + str(cfg['seed']) if cfg['seed'] else ''}"
-                f"{', ' + cfg['schedule'] + ' + ' + cfg['decay_data'] + ' decay' if cfg['schedule'] != 'cosine' else ''}")
+                f"{', ' + cfg['schedule'] + ' + ' + cfg['decay_data'] + ' decay' if cfg['schedule'] != 'cosine' else ''}"
+                f"{', ' + cfg['data_dir'] if cfg['data_dir'] != 'data' else ''}")
         print(f"{desc:58s} {total:20.2e}")
 
 
